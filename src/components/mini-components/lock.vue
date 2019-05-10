@@ -1,18 +1,20 @@
 <template>
-    <div class="lock" :style="style"></div>
+    <div class="lock" 
+        :style="style" 
+        @click.self="$store.state.lockShow = false"
+    >
+        <project-info></project-info>
+    </div>
 </template>
 
 <script>
+import projectInfo from './project-info.vue'
 export default {
     name:'lock',
     props:{
         backgroundColor:{
             type:String,
-            default:'black'
-        },
-        opacity:{
-            type:String,
-            default:'.3'
+            default:'rgba(0,0,0,0.3)'
         }
     },
     data(){
@@ -22,14 +24,15 @@ export default {
     },
     computed:{
         style(){
-            let height = document.body.clientHeight;
-            console.log(height)
+            let height = window.innerHeight + 'px';
             return {
                 backgroundColor:this.backgroundColor,
-                opacity:this.opacity,
                 height
             }
         }
+    },
+    components:{
+        projectInfo
     }
 }
 </script>

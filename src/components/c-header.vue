@@ -4,9 +4,11 @@
             <router-link :to="{name:'root'}">
                 <img src="../assets/cnodejs_light.svg" alt="back root page">
             </router-link>
-            <span @click="aboutShowVal = !aboutShowVal">关于</span>
+            <span @click="$store.state.lockShow = true">关于</span>
         </div>
-        <lock v-show="aboutShowVal" @click.native="aboutShowVal = !aboutShowVal"></lock>
+        <transition name="fade">
+            <lock v-show="$store.state.lockShow"></lock>
+        </transition>
     </div>
 </template>
 
@@ -21,6 +23,11 @@ export default {
     },
     components:{
         lock
+    },
+    methods:{
+        lockDisplay(event){
+            console.log(event);
+        }
     }
 }
 </script>

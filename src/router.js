@@ -1,6 +1,6 @@
-import Vue from 'vue'
+import Vue from 'vue' 
 import Router from 'vue-router'
-import App from './App.vue'
+import positList from './components/c-post-list'
 Vue.use(Router)
 
 export default new Router({
@@ -10,7 +10,9 @@ export default new Router({
     {
       path:'/',
       name:'root',
-      component:App
+      components:{
+        main:positList
+      }
     }
   ]
 })

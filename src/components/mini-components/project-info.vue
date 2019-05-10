@@ -30,7 +30,7 @@ export default {
     name:'project-info',
     data(){
         return{
-            stacks:['Vue','Vue-Router','Axios']
+            stacks:['Vue','Vue-Router','VueX','Axios']
         }
     },
     computed:{

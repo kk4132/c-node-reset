@@ -4,9 +4,25 @@
             <ul>
                 <li v-for="(item,index) of postItems"
                     :key="index"
-                    :class="index == 0?'li_active':''"
+                    :class="isActive === index ? 'li_active':''"
+                    @click="active(index)"
                 >
                     {{item}}
+                </li>
+            </ul>
+        </div>
+        <div class="post-body">
+            <ul>
+                <li 
+                    v-for="(list,index) of postLists"
+                    :key="index"
+                >
+                    <router-link :to="{name:'user_info'}">
+                        <img 
+                            :src="list.author.avatar_url" 
+                            :alt="list.author.loginname"
+                        >
+                    </router-link>
                 </li>
             </ul>
         </div>
@@ -17,8 +33,33 @@
 export default {
     data(){
         return{
-            postItems:['全部','精华','分享','问答','招聘']
+            postItems:['全部','精华','分享','问答','招聘'],
+            isActive:0,
+            postLists:[]
         }
+    },
+    methods:{
+        active(index){
+            this.isActive = index;
+        },
+        getData(){
+            this.$http({
+                url:' https://cnodejs.org/api/v1/topics',
+                method:'get',
+                limit:'20',
+                page:'1'
+            }).then((response)=>{
+                if(response.data.success === true){
+                    console.log(response.data.data)
+                    this.postLists = response.data.data;
+                }
+            }).catch((error)=>{
+                console.log(error)
+            })
+        }
+    },
+    beforeMount(){
+        this.getData();
     }
 }
 </script>
@@ -45,6 +86,9 @@ export default {
                     color:rgb(15, 106, 241);
                 }
             }
+        }
+        .post-body{
+
         }
     }
     li{

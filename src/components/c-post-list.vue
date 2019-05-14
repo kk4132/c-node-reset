@@ -14,15 +14,28 @@
         <div class="post-body">
             <ul>
                 <li 
-                    v-for="(list,index) of postLists"
+                    v-for="(post,index) of filterPosts"
                     :key="index"
                 >
-                    <router-link :to="{name:'user_info'}">
+                    <router-link 
+                        class="post-list-router-img"
+                        :to="{name:'user_info'}">
                         <img 
-                            :src="list.author.avatar_url" 
-                            :alt="list.author.loginname"
+                            :src="post.imgUrl" 
+                            :alt="post.loginName"
                         >
                     </router-link>
+                    <p class="post-list-visit">
+                        <em>{{post.replyCount}}</em> /
+                        {{post.visitCount}}
+                    </p>
+                    <mark class="post-list-tab">
+                        {{post.tab}}
+                    </mark>
+                    <h4 class="post-list-title">{{post.title}}</h4>
+                    <span class="post-list-replyTime">
+                        {{post.lastReplyTime+'前'}}
+                    </span>
                 </li>
             </ul>
         </div>
@@ -35,7 +48,24 @@ export default {
         return{
             postItems:['全部','精华','分享','问答','招聘'],
             isActive:0,
-            postLists:[]
+            postLists:[],
+            dealDataFn:{
+                getTab(tab){
+                    let result = '';
+                    if(tab === 'share'){
+                        result = '分享'
+                    }else if(tab === 'ask'){
+                        result = '问答'
+                    }else if(tab === 'job'){
+                        result = '招聘'
+                    }else if(tab === 'good'){
+                        result = '精华'
+                    }else{
+                        result = '其他'
+                    }
+                    return result;
+                }
+            }
         }
     },
     methods:{
@@ -60,6 +90,21 @@ export default {
     },
     beforeMount(){
         this.getData();
+    },
+    computed:{
+        filterPosts(){
+            return this.postLists.map((post)=>{
+                return {
+                    title:post.title,
+                    imgUrl:post.author.avatar_url,
+                    loginName:post.author.loginname,
+                    replyCount:post.reply_count,
+                    visitCount:post.visit_count,
+                    tab:this.dealDataFn.getTab(post.tab),
+                    lastReplyTime:this.$Fn.spaceTime(post.last_reply_at)
+                }
+            })
+        }
     }
 }
 </script>
@@ -88,7 +133,29 @@ export default {
             }
         }
         .post-body{
-
+            ul{
+                li{
+                    padding: 0;
+                    border:1px solid #666;
+                    margin-bottom: 10px;
+                    height: 50px;
+                    line-height: 50px;
+                    .post-list-router-img{
+                        float: left;
+                        img{
+                            width: 50px;
+                            border-radius: 50%;
+                            margin-right: 30px;
+                        }
+                    }
+                    .post-list-visit,
+                    .post-list-title,
+                    .post-list-tab,
+                    .post-list-replyTime{
+                        display: inline-block;
+                    }  
+                }
+            }
         }
     }
     li{

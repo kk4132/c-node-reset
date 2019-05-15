@@ -26,10 +26,10 @@
                         >
                     </router-link>
                     <p class="post-list-visit">
-                        <em>{{post.replyCount}}</em> /
+                        <strong>{{post.replyCount}}</strong> /
                         {{post.visitCount}}
                     </p>
-                    <mark class="post-list-tab">
+                    <mark :class="post.tabClass">
                         {{post.tab}}
                     </mark>
                     <h4 class="post-list-title">{{post.title}}</h4>
@@ -49,6 +49,7 @@ export default {
             postItems:['全部','精华','分享','问答','招聘'],
             isActive:0,
             postLists:[],
+            pageIndex:1,
             dealDataFn:{
                 getTab(tab){
                     let result = '';
@@ -73,15 +74,18 @@ export default {
             this.isActive = index;
         },
         getData(){
-            this.$http({
-                url:' https://cnodejs.org/api/v1/topics',
-                method:'get',
-                limit:'20',
-                page:'1'
-            }).then((response)=>{
+            // console.log(this.pageIndex);
+            let params = {
+                        url:' https://cnodejs.org/api/v1/topics',
+                        method:'get',
+                        // limit:20*this.pageIndex,
+                        page:this.pageIndex++,
+                    };
+            console.log(params);
+            this.$http(params).then((response)=>{
                 if(response.data.success === true){
-                    console.log(response.data.data)
-                    this.postLists = response.data.data;
+                    console.log(response)
+                    this.postLists = this.postLists.concat(response.data.data);
                 }
             }).catch((error)=>{
                 console.log(error)
@@ -101,9 +105,26 @@ export default {
                     replyCount:post.reply_count,
                     visitCount:post.visit_count,
                     tab:this.dealDataFn.getTab(post.tab),
-                    lastReplyTime:this.$Fn.spaceTime(post.last_reply_at)
+                    lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
+                    tabClass:['post-list-tab',post.tab]
                 }
             })
+        }
+    },
+    created(){
+        let vm = this;
+        window.onscroll = function(){
+            //变量scrollTop是滚动条滚动时，距离顶部的距离
+       		var scrollTop = document.documentElement.scrollTop||document.body.scrollTop;
+       		//变量windowHeight是可视区的高度
+       		var windowHeight = document.documentElement.clientHeight || document.body.clientHeight;
+       		//变量scrollHeight是滚动条的总高度
+       		var scrollHeight = document.documentElement.scrollHeight||document.body.scrollHeight;
+                   //滚动条到底部的条件
+            if(scrollTop+windowHeight==scrollHeight){
+                    //写后台加载数据的函数
+                vm.getData();
+            }
         }
     }
 }
@@ -114,8 +135,8 @@ export default {
         font-size: 14px;
         width: 900px;
         margin: 50px auto 0 auto;
-        border: 1px solid #333;
-        height: 900px;
+        border: 1px solid rgb(224, 224, 224);
+        padding: 20px;
         .post-header{
             padding: 20px;
             ul{
@@ -135,25 +156,66 @@ export default {
         .post-body{
             ul{
                 li{
-                    padding: 0;
-                    border:1px solid #666;
-                    margin-bottom: 10px;
-                    height: 50px;
-                    line-height: 50px;
+                     overflow: hidden;
+                     line-height: 50px;
+                     height: 50px;
+                     margin-bottom: 20px;
                     .post-list-router-img{
-                        float: left;
-                        img{
-                            width: 50px;
-                            border-radius: 50%;
-                            margin-right: 30px;
-                        }
+                       float: left;
+                       img{
+                           width: 50px;
+                           border-radius: 50%;
+                       }
                     }
                     .post-list-visit,
                     .post-list-title,
-                    .post-list-tab,
+                    .post-list-tab{
+                        float: left;
+                        margin-left:30px;
+                    }
+                    .post-list-visit{
+                        width: 100px;
+                        text-align: center;
+                    }
+                    .post-list-tab{
+                        width: 50px;
+                        text-align: center;
+                        height: 40px;
+                        line-height: 40px;
+                        border-radius: 7px;
+                        margin-top:5px;
+                    }
                     .post-list-replyTime{
-                        display: inline-block;
-                    }  
+                        float: right;
+                        margin-right: -30px;
+                        width: 80px;
+                        text-align: left;
+                        color: #666;
+                    }
+                    .post-list-title{
+                        overflow: hidden;
+                        width: 500px;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        color: rgb(37, 195, 201)
+                    }
+                    .ask{
+                        background-color: rgb(218, 215, 87);
+                        color: #fff;
+                    }
+                    .good{
+                        background-color: rgb(221, 130, 130);
+                    }
+                    .other{
+                        background-color: yellow;
+                    }
+                    .share{
+                        background-color: rgb(84, 194, 161);
+                        color: #fff;
+                    }
+                    .job{
+                        background: green;
+                    }
                 }
             }
         }

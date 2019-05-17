@@ -1,9 +1,14 @@
 <template>
-    <div class="lock" 
-        :style="style" 
-        @click.self="$store.state.lockShow = false"
-    >
-        <project-info></project-info>
+    <div>
+        <transition name="fade">
+            <div class="lock" 
+                :style="style" 
+                @click.self="$store.state.lockShow = false"
+                v-show="$store.state.lockShow"
+            >
+                <project-info></project-info>
+            </div>
+        </transition>
     </div>
 </template>
 

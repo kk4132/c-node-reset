@@ -6,9 +6,7 @@
             </router-link>
             <span @click="$store.state.lockShow = true">关于</span>
         </div>
-        <transition name="fade">
-            <lock v-show="$store.state.lockShow"></lock>
-        </transition>
+        <lock></lock>
     </div>
 </template>
 

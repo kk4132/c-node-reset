@@ -5,10 +5,29 @@
                 <li v-for="(item,index) of postItems"
                     :key="index"
                     :class="isActive === index ? 'li_active':''"
-                    @click="active(index)"
+                    @click="switchTab(index,item.keyEN)"
                 >
-                    {{item}}
+                    {{item.keyZH}}
                 </li>
+            </ul>
+        </div>
+        <div class="post-footer">
+            <ul>
+                <li class="prev" @click="prevPage">&lt;&lt;</li>
+                <li 
+                    class="ellipsis" 
+                    v-show="pages[0] >= 3?true:false"
+                >...</li>
+                <li 
+                    v-for="(page,index) of pages"
+                    :key="index"
+                    @click="currPage = page"
+                    :class="{pageActvie:currPage===page?true:false}"
+                >
+                    {{page}}
+                </li>
+                <li class="ellipsis">...</li>
+                <li class="next">&gt;&gt;</li>
             </ul>
         </div>
         <div class="post-body">
@@ -39,6 +58,7 @@
                 </li>
             </ul>
         </div>
+        
     </div>
 </template>
 
@@ -46,10 +66,19 @@
 export default {
     data(){
         return{
-            postItems:['全部','精华','分享','问答','招聘'],
+            postItems:[
+                {keyZH:'全部',keyEN:'all'},
+                {keyZH:'精华',keyEN:'good'},
+                {keyZH:'分享',keyEN:'share'},
+                {keyZH:'问答',keyEN:'ask'},
+                {keyZH:'招聘',keyEN:'job'}
+            ],
+            // currPage:1,
             isActive:0,
             postLists:[],
-            pageIndex:1,
+            currParams:{
+                page:1
+            },
             dealDataFn:{
                 getTab(tab){
                     let result = '';
@@ -69,23 +98,47 @@ export default {
             }
         }
     },
+    watch:{
+        currPage(newVal){
+            this.currParams.page = newVal;
+            this.getData(); 
+        }
+    },
     methods:{
-        active(index){
+        prevPage(){
+            if(this.currPage>1){
+                this.currPage = this.currPage - 1;
+            }
+        },
+        switchTab(index,keyName){
+            let selfParams = this.currParams;
+            this.postLists = [];
+            if(keyName !== 'all'){
+                selfParams.tab = keyName;
+            }else{
+                if(selfParams.hasOwnProperty('tab')){
+                    delete selfParams.tab;
+                }
+            }
+            if(this.currPage === 1){
+                this.getData()
+            }else{
+                this.currPage = 1;
+            };
             this.isActive = index;
+            // this.getData();
+            console.log(selfParams);
         },
         getData(){
-            // console.log(this.pageIndex);
-            let params = {
-                        url:' https://cnodejs.org/api/v1/topics',
-                        method:'get',
-                        // limit:20*this.pageIndex,
-                        page:this.pageIndex++,
-                    };
-            console.log(params);
-            this.$http(params).then((response)=>{
+            let requestObj = {
+                    url:' https://cnodejs.org/api/v1/topics',
+                    method:'get',
+                    params:{}
+                };
+            Object.assign(requestObj.params,this.currParams);
+            this.$http(requestObj).then((response)=>{
                 if(response.data.success === true){
-                    console.log(response)
-                    this.postLists = this.postLists.concat(response.data.data);
+                    this.postLists = response.data.data;
                 }
             }).catch((error)=>{
                 console.log(error)
@@ -96,6 +149,17 @@ export default {
         this.getData();
     },
     computed:{
+        curr
+        pages(){
+            let currPage = this.currPage;
+            let pages = [];
+            if(this.currPage <= 3){
+                pages = [1,2,3,4,5];
+            }else{
+                pages = [currPage-2,currPage-1,currPage,currPage+1,currPage+2];
+            }
+            return pages;
+        },
         filterPosts(){
             return this.postLists.map((post)=>{
                 return {
@@ -111,22 +175,22 @@ export default {
             })
         }
     },
-    created(){
-        let vm = this;
-        window.onscroll = function(){
-            //变量scrollTop是滚动条滚动时，距离顶部的距离
-       		var scrollTop = document.documentElement.scrollTop||document.body.scrollTop;
-       		//变量windowHeight是可视区的高度
-       		var windowHeight = document.documentElement.clientHeight || document.body.clientHeight;
-       		//变量scrollHeight是滚动条的总高度
-       		var scrollHeight = document.documentElement.scrollHeight||document.body.scrollHeight;
-                   //滚动条到底部的条件
-            if(scrollTop+windowHeight==scrollHeight){
-                    //写后台加载数据的函数
-                vm.getData();
-            }
-        }
-    }
+    // created(){
+    //     let vm = this;
+    //     window.onscroll = function(){
+    //         //变量scrollTop是滚动条滚动时，距离顶部的距离
+    //    		var scrollTop = document.documentElement.scrollTop||document.body.scrollTop;
+    //    		//变量windowHeight是可视区的高度
+    //    		var windowHeight = document.documentElement.clientHeight || document.body.clientHeight;
+    //    		//变量scrollHeight是滚动条的总高度
+    //    		var scrollHeight = document.documentElement.scrollHeight||document.body.scrollHeight;
+    //                //滚动条到底部的条件
+    //         if(scrollTop+windowHeight==scrollHeight){
+    //                 //写后台加载数据的函数
+    //             vm.getData();
+    //         }
+    //     }
+    // }
 }
 </script>
 
@@ -147,6 +211,7 @@ export default {
                     height:30px;
                     line-height: 30px;
                     margin-right: 30px;
+                    cursor: pointer;
                 }
                 li:hover{
                     color:rgb(15, 106, 241);
@@ -219,6 +284,36 @@ export default {
                 }
             }
         }
+        .post-footer{
+            ul{
+                border-radius: 5px;
+                border: 1px solid #ccc;
+                overflow: hidden;
+                display: inline-block;
+                li{
+                    cursor: pointer;
+                    color: #666;
+                    text-align: center;
+                    float:left;
+                    width: 30px;
+                    height: 25px;
+                    line-height: 25px;
+                    border-right: 1px solid #c6c6c6;
+                }
+                li:hover{
+                    background: rgb(221, 221, 221)
+                }
+                .next{
+                    border-right:none;
+                }
+                .pageActvie{
+                    color: rgb(107, 227, 243);
+                }
+                .ellipsis{
+                    cursor:auto;
+                }
+            }
+        }
     }
     li{
         list-style: none;
@@ -227,6 +322,7 @@ export default {
        color:rgb(15, 106, 241);
        border-bottom:1px solid rgb(15, 106, 241);  
     }
+    
 </style>
 
 

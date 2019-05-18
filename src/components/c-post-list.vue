@@ -17,45 +17,50 @@
                 <li 
                     class="ellipsis" 
                     v-show="pages[0] >= 3?true:false"
+                    key="prev_ell"
                 >...</li>
+                <transition-group name="fade">
                 <li 
                     v-for="(page,index) of pages"
                     :key="index"
-                    @click="currPage = page"
+                    @click="currParams.page = page"
                     :class="{pageActvie:currPage===page?true:false}"
                 >
                     {{page}}
                 </li>
-                <li class="ellipsis">...</li>
-                <li class="next">&gt;&gt;</li>
+                </transition-group>
+                <li class="ellipsis" key="next_ell">...</li>
+                <li class="next" @click="nextPage">&gt;&gt;</li>
             </ul>
         </div>
         <div class="post-body">
             <ul>
-                <li 
-                    v-for="(post,index) of filterPosts"
-                    :key="index"
-                >
-                    <router-link 
-                        class="post-list-router-img"
-                        :to="{name:'user_info'}">
-                        <img 
-                            :src="post.imgUrl" 
-                            :alt="post.loginName"
-                        >
-                    </router-link>
-                    <p class="post-list-visit">
-                        <strong>{{post.replyCount}}</strong> /
-                        {{post.visitCount}}
-                    </p>
-                    <mark :class="post.tabClass">
-                        {{post.tab}}
-                    </mark>
-                    <h4 class="post-list-title">{{post.title}}</h4>
-                    <span class="post-list-replyTime">
-                        {{post.lastReplyTime+'前'}}
-                    </span>
-                </li>
+                <transition-group name="fade">
+                    <li 
+                        v-for="(post,index) of filterPosts"
+                        :key="index"
+                    >
+                        <router-link 
+                            class="post-list-router-img"
+                            :to="{name:'user_info'}">
+                            <img 
+                                :src="post.imgUrl" 
+                                :alt="post.loginName"
+                            >
+                        </router-link>
+                        <p class="post-list-visit">
+                            <strong>{{post.replyCount}}</strong> /
+                            {{post.visitCount}}
+                        </p>
+                        <mark :class="post.tabClass">
+                            {{post.tab}}
+                        </mark>
+                        <h4 class="post-list-title">{{post.title}}</h4>
+                        <span class="post-list-replyTime">
+                            {{post.lastReplyTime+'前'}}
+                        </span>
+                    </li>
+                </transition-group>
             </ul>
         </div>
         
@@ -76,6 +81,7 @@ export default {
             // currPage:1,
             isActive:0,
             postLists:[],
+            cachePosts:[],
             currParams:{
                 page:1
             },
@@ -99,20 +105,23 @@ export default {
         }
     },
     watch:{
-        currPage(newVal){
-            this.currParams.page = newVal;
-            this.getData(); 
+        currPage(){
+            this.getData();
         }
     },
     methods:{
+        nextPage(){
+            this.currParams.page+=1
+        },
         prevPage(){
             if(this.currPage>1){
-                this.currPage = this.currPage - 1;
+                this.currParams.page = this.currParams.page - 1;
             }
         },
         switchTab(index,keyName){
             let selfParams = this.currParams;
             this.postLists = [];
+            this.cachePosts = [];
             if(keyName !== 'all'){
                 selfParams.tab = keyName;
             }else{
@@ -120,36 +129,51 @@ export default {
                     delete selfParams.tab;
                 }
             }
+            //currpage和currParams.page 是同一个变量
+            //currpage依赖currParams.page,作出回调函数响应
             if(this.currPage === 1){
                 this.getData()
             }else{
-                this.currPage = 1;
+                this.currParams.page = 1;
             };
             this.isActive = index;
             // this.getData();
             console.log(selfParams);
         },
         getData(){
-            let requestObj = {
-                    url:' https://cnodejs.org/api/v1/topics',
-                    method:'get',
-                    params:{}
-                };
-            Object.assign(requestObj.params,this.currParams);
-            this.$http(requestObj).then((response)=>{
-                if(response.data.success === true){
-                    this.postLists = response.data.data;
-                }
-            }).catch((error)=>{
-                console.log(error)
-            })
+            if(this.cachePosts.length === 0){
+                let requestObj = {
+                        url:' https://cnodejs.org/api/v1/topics',
+                        method:'get',
+                        params:{
+                            limit:60
+                        }
+                    };
+                Object.assign(requestObj.params,this.currParams);
+                this.$http(requestObj).then((response)=>{
+                    if(response.data.success === true ){
+                        if(response.data.data.length < 20){
+                            this.postLists = response.data.data;
+                        }else{
+                            this.cachePosts = response.data.data;
+                            this.postLists = this.cachePosts.splice(0,20);
+                        }
+                    }
+                }).catch((error)=>{
+                    console.log(error)
+                })
+            }else{
+                this.postLists = this.cachePosts.splice(0,20);
+            }
         }
     },
     beforeMount(){
         this.getData();
     },
     computed:{
-        curr
+        currPage(){
+            return this.currParams.page
+        },
         pages(){
             let currPage = this.currPage;
             let pages = [];
@@ -160,36 +184,68 @@ export default {
             }
             return pages;
         },
-        filterPosts(){
-            return this.postLists.map((post)=>{
-                return {
-                    title:post.title,
-                    imgUrl:post.author.avatar_url,
-                    loginName:post.author.loginname,
-                    replyCount:post.reply_count,
-                    visitCount:post.visit_count,
-                    tab:this.dealDataFn.getTab(post.tab),
-                    lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
-                    tabClass:['post-list-tab',post.tab]
-                }
-            })
+        // filterPosts(){
+        //     return this.postLists.map((post)=>{
+        //         return {
+        //             title:post.title,
+        //             imgUrl:post.author.avatar_url,
+        //             loginName:post.author.loginname,
+        //             replyCount:post.reply_count,
+        //             visitCount:post.visit_count,
+        //             tab:this.dealDataFn.getTab(post.tab),
+        //             lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
+        //             tabClass:['post-list-tab',post.tab]
+        //         }
+        //     })
+        // },
+        filterPosts:{
+            set(newVal){
+
+            },
+            get(){
+                return this.postLists.map((post)=>{
+                    return {
+                        title:post.title,
+                        imgUrl:post.author.avatar_url,
+                        loginName:post.author.loginname,
+                        replyCount:post.reply_count,
+                        visitCount:post.visit_count,
+                        tab:this.dealDataFn.getTab(post.tab),
+                        lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
+                        tabClass:['post-list-tab',post.tab]
+                    }
+                })
+            }
         }
     },
     // created(){
     //     let vm = this;
-    //     window.onscroll = function(){
-    //         //变量scrollTop是滚动条滚动时，距离顶部的距离
+    //     let handle = function(event){
+    //         //  变量scrollTop是滚动条滚动时，距离顶部的距离
     //    		var scrollTop = document.documentElement.scrollTop||document.body.scrollTop;
     //    		//变量windowHeight是可视区的高度
     //    		var windowHeight = document.documentElement.clientHeight || document.body.clientHeight;
     //    		//变量scrollHeight是滚动条的总高度
     //    		var scrollHeight = document.documentElement.scrollHeight||document.body.scrollHeight;
     //                //滚动条到底部的条件
-    //         if(scrollTop+windowHeight==scrollHeight){
+    //         if(scrollTop+windowHeight==scrollHeight && event.deltaY > 0){
     //                 //写后台加载数据的函数
-    //             vm.getData();
-    //         }
-    //     }
+    //             vm.nextPage();
+    //             // console.log(vm.currPage);
+    //             document.documentElement.scrollTop = 0;
+    //                 window.removeEventListener('mousewheel',handle);
+    //             setTimeout(function(){
+    //                 window.addEventListener('mousewheel',handle);
+    //             },1500) 
+    //         }else if(scrollTop==0 && event.deltaY < 0){
+    //             vm.prevPage();
+    //                 window.removeEventListener('mousewheel',handle);
+    //             setTimeout(function(){
+    //                 window.addEventListener('mousewheel',handle);
+    //             },1500)
+    //         }
+    //     };
+    //     window.addEventListener('mousewheel',handle);
     // }
 }
 </script>

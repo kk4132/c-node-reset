@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import positList from './components/c-post-list';
 import userInfo from './components/c-user-info';
+import article from './components/c-article'
 Vue.use(Router);
 export default new Router({
   mode: 'history',
@@ -19,6 +20,13 @@ export default new Router({
       name:'user_info',
       component:{
         main:userInfo
+      }
+    },
+    {
+      path:'/article/:id',
+      name:'article',
+      component:{
+        main:article
       }
     }
   ]

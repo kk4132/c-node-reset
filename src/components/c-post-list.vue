@@ -1,48 +1,49 @@
 <template>
-    <div class="posts">
-        <div class="post-header">
-            <ul>
-                <li v-for="(item,index) of postItems"
-                    :key="index"
-                    :class="isActive === index ? 'li_active':''"
-                    @click="switchTab(index,item.keyEN)"
-                >
-                    {{item.keyZH}}
-                </li>
-            </ul>
-        </div>
-        <div class="post-footer">
-            <ul>
-                <li class="prev" @click="prevPage">&lt;&lt;</li>
-                <li 
-                    class="ellipsis" 
-                    v-show="pages[0] >= 3?true:false"
-                    key="prev_ell"
-                >...</li>
-                <transition-group name="fade">
-                <li 
-                    v-for="(page,index) of pages"
-                    :key="index"
-                    @click="currParams.page = page"
-                    :class="{pageActvie:currPage===page?true:false}"
-                >
-                    {{page}}
-                </li>
-                </transition-group>
-                <li class="ellipsis" key="next_ell">...</li>
-                <li class="next" @click="nextPage">&gt;&gt;</li>
-            </ul>
-        </div>
-        <div class="post-body">
-            <ul>
-                <transition-group name="fade">
+    <div>
+        <load v-if="loading"></load>
+        <div class="posts" v-else>
+            <div class="post-header">
+                <ul>
+                    <li v-for="(item,index) of postItems"
+                        :key="index"
+                        :class="isActive === index ? 'li_active':''"
+                        @click="switchTab(index,item.keyEN)"
+                    >
+                        {{item.keyZH}}
+                    </li>
+                </ul>
+            </div>
+            <div class="post-footer">
+                <ul>
+                    <li class="prev" @click="prevPage">&lt;&lt;</li>
                     <li 
-                        v-for="(post,index) of filterPosts"
+                        class="ellipsis" 
+                        v-show="pages[0] >= 3?true:false"
+                        key="prev_ell"
+                    >...</li>
+                    <transition-group name="fade">
+                    <li 
+                        v-for="(page,index) of pages"
+                        :key="index"
+                        @click="currParams.page = page"
+                        :class="{pageActvie:currPage===page?true:false}"
+                    >
+                        {{page}}
+                    </li>
+                    </transition-group>
+                    <li class="ellipsis" key="next_ell">...</li>
+                    <li class="next" @click="nextPage">&gt;&gt;</li>
+                </ul>
+            </div>
+            <div class="post-body">
+                <transition-group name="fade" tag="ul">
+                    <li 
+                        v-for="(post,index) of posts"
                         :key="index"
                     >
                         <router-link 
                             class="post-list-router-img"
-                            :to="{name:'user_info'}">
+                            :to="{name:'user_info',params:{name:post.loginName}}">
                             <img 
                                 :src="post.imgUrl" 
                                 :alt="post.loginName"
@@ -55,22 +56,27 @@
                         <mark :class="post.tabClass">
                             {{post.tab}}
                         </mark>
-                        <h4 class="post-list-title">{{post.title}}</h4>
+                        <router-link 
+                            class="post-list-title"
+                            :to="{name:'article'}"
+                        >{{post.title}}
+                        </router-link>
                         <span class="post-list-replyTime">
                             {{post.lastReplyTime+'前'}}
                         </span>
                     </li>
                 </transition-group>
-            </ul>
+            </div>
         </div>
-        
     </div>
 </template>
 
 <script>
+import load from './mini-components/loading';
 export default {
     data(){
         return{
+            loading:true,
             postItems:[
                 {keyZH:'全部',keyEN:'all'},
                 {keyZH:'精华',keyEN:'good'},
@@ -82,6 +88,7 @@ export default {
             isActive:0,
             postLists:[],
             cachePosts:[],
+            posts:[],
             currParams:{
                 page:1
             },
@@ -107,9 +114,31 @@ export default {
     watch:{
         currPage(){
             this.getData();
+        },
+        postLists(newVal){
+            if(this.posts.length > 0){
+                this.posts.splice(0,20)
+            }
+            // console.log(this.posts);
+            let filterPosts =newVal.map((post)=>{
+                    return {
+                        title:post.title,
+                        imgUrl:post.author.avatar_url,
+                        loginName:post.author.loginname,
+                        replyCount:post.reply_count,
+                        visitCount:post.visit_count,
+                        tab:this.dealDataFn.getTab(post.tab),
+                        lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
+                        tabClass:['post-list-tab',post.tab]
+                    }
+                })
+            this.posts.push(...filterPosts);
         }
     },
     methods:{
+        filterPosts(dataArr){
+            return 
+        },
         nextPage(){
             this.currParams.page+=1
         },
@@ -158,6 +187,7 @@ export default {
                             this.cachePosts = response.data.data;
                             this.postLists = this.cachePosts.splice(0,20);
                         }
+                        console.log(response.data.data);
                     }
                 }).catch((error)=>{
                     console.log(error)
@@ -184,40 +214,29 @@ export default {
             }
             return pages;
         },
-        // filterPosts(){
-        //     return this.postLists.map((post)=>{
-        //         return {
-        //             title:post.title,
-        //             imgUrl:post.author.avatar_url,
-        //             loginName:post.author.loginname,
-        //             replyCount:post.reply_count,
-        //             visitCount:post.visit_count,
-        //             tab:this.dealDataFn.getTab(post.tab),
-        //             lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
-        //             tabClass:['post-list-tab',post.tab]
-        //         }
-        //     })
-        // },
-        filterPosts:{
-            set(newVal){
+        // filterPosts:{
+        //     set(newVal){
 
-            },
-            get(){
-                return this.postLists.map((post)=>{
-                    return {
-                        title:post.title,
-                        imgUrl:post.author.avatar_url,
-                        loginName:post.author.loginname,
-                        replyCount:post.reply_count,
-                        visitCount:post.visit_count,
-                        tab:this.dealDataFn.getTab(post.tab),
-                        lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
-                        tabClass:['post-list-tab',post.tab]
-                    }
-                })
-            }
-        }
+        //     },
+        //     get(){
+        //         return this.postLists.map((post)=>{
+        //             return {
+        //                 title:post.title,
+        //                 imgUrl:post.author.avatar_url,
+        //                 loginName:post.author.loginname,
+        //                 replyCount:post.reply_count,
+        //                 visitCount:post.visit_count,
+        //                 tab:this.dealDataFn.getTab(post.tab),
+        //                 lastReplyTime:this.$Fn.spaceTime(post.last_reply_at),
+        //                 tabClass:['post-list-tab',post.tab]
+        //             }
+        //         })
+        //     }
+        // }
     },
+    components:{
+        load
+    }
     // created(){
     //     let vm = this;
     //     let handle = function(event){
@@ -251,6 +270,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+    a{
+        text-decoration: none;
+    }
     .posts{
         font-size: 14px;
         width: 900px;

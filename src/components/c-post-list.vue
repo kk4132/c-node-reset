@@ -187,7 +187,8 @@ export default {
                             this.cachePosts = response.data.data;
                             this.postLists = this.cachePosts.splice(0,20);
                         }
-                        console.log(response.data.data);
+                        this.loading = false;
+                        // console.log(response.data.data);
                     }
                 }).catch((error)=>{
                     console.log(error)

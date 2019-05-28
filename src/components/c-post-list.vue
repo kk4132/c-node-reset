@@ -6,23 +6,24 @@
                     v-for="(item,index) of postItems"
                     :key="index"
                     :class="[itemActive === index?'item-active':'']"
-                    @click="itemActive = index"
+                    @click="postItemClick(index,item.en)"
                 >{{item.zh}}</li>
                 <li class="line" 
                     :style="{left:`${linePosition}px`}">
                 </li>
             </ul>
             <ul class="post-pages">
-                <li class="page">&lt;&lt;</li>
-                <li v-show="true">......</li>
+                <li class="page" @click="prevPage">&lt;&lt;</li>
+                <li v-show="currPage > 3?true:false">......</li>
                 <li 
                     v-for="(page,index) of postPages"
                     :key="index"
-                    :class="['page',pageActive === index?'pageActive':'']"
+                    :class="['page',page === currPage?'pageActive':'']"
+                    @click="currPage = page"
                 >{{page}}
                 </li>
                 <li v-show="true">......</li>
-                <li class="page">&gt;&gt;</li>
+                <li class="page" @click="++currPage">&gt;&gt;</li>
             </ul>
             <ul class="post-lists">
                 <li 
@@ -30,14 +31,14 @@
                     :key="index"
                 >
                     <router-link 
-                        :to="{name:'user_info'}"
+                        :to="{name:'user_info',params:{loginname:list.userName}}"
                         class="img"
                     >
                         <img :src="list.imgUrl">
                     </router-link>
                     <span class="count">{{list.replyCount}} / {{list.visitCount}}</span>
                     <strong 
-                        :class="list.tab"
+                        :class="list.tab != undefined?list.tab:'other'"
                     >
                         {{tabZh(list.tab)}}
                     </strong>
@@ -66,12 +67,53 @@ export default {
                         {zh:'招聘',en:'job'}
                         ],
             itemActive:0,
-            pageActive:0,
+            currPage:1,
+            maxPage:5,
             postPages:[1,2,3,4,5],
-            postData:[]
+            nextPage:[],
+            postData:[],
+            currParams:{
+                page:0,
+                limit:0,
+                tab:'all'
+            }
+        }
+    },
+    watch:{
+        currPage(newVal,oldVal){
+            if(newVal > 2){
+                this.postPages = [newVal-2,newVal-1,newVal];
+                if(newVal > oldVal){
+                    if(this.maxPage >= newVal+2){
+                        this.postPages.push(newVal+1,newVal+2);
+                    }else{
+                        this.getPageTest(newVal+2,2).then(()=>{
+                            if(this.nextPage.length > 0){
+                                this.postPages = this.postPages.concat(this.nextPage);
+                                this.nextPage = [];
+                                this.maxPage = this.postPages[4];
+                            }
+                        })
+                    }
+                }else{
+                   this.postPages.push(newVal+1,newVal+2); 
+                }
+                // 
+            }else{
+                this.postPages = [1,2,3,4,5];
+            }
+            this.currParams.page = newVal;
+            this.getData()
+        },
+        currTab(){
+            this.currPage = 1;
+            this.getData()
         }
     },
     computed:{
+        currTab(){
+            return this.currParams.tab;
+        },
         //下标线跟随选中项目移动距离
         linePosition(){
             return this.itemActive * 70;
@@ -93,31 +135,76 @@ export default {
         }
     },
     beforeMount(){
+        let params = this.currParams;
+            params.page = this.currPage;
+            params.limit = 20;
         this.getData();
     },
     methods:{
+        postItemClick(index,tab){
+            this.itemActive = index;
+            this.currParams.tab = tab;
+        },
+        prevPage(){
+            if(this.currPage > 1){
+               --this.currPage;
+            }
+        },
         getData(){
+            let params = Object.assign({},this.currParams);
+            if(params.tab === 'all')delete params.tab;
             this.$http({
                 url:'https://cnodejs.org/api/v1/topics',
                 method:'get',
-                params:{
-                    page:1,
-                    limit:20
-                }
+                params:params
             }).then((res)=>{
                 if(res.data.success === true){
                     this.postData = res.data.data;
-                    console.log(this.postData);
                 }
             }).catch((error)=>{
                 console.log(error);
             })
         },
+        //测试该页面是否存在
+        getPageTest(page,count){
+           if(count < 1)return;
+           return this.$http({
+                url:'https://cnodejs.org/api/v1/topics',
+                method:'get',
+                params:{
+                    page,
+                    limit:20
+                }
+            }).then((res)=>{
+                if(res.data.success === true &&
+                    res.data.data.length > 0
+                ){
+                    if(count === 2){
+                       this.nextPage.push(page-1,page);
+                    }else{
+                       this.nextPage.push(page);
+                    }
+                }else{
+                    return this.getPageTest(page-1,--count);
+                }
+            }).catch((error)=>{
+                console.log(error);
+            }) 
+        },
         //取得tab中文名
         tabZh(tab){
-            return this.postItems.filter((item)=>{
+            try{
+                let result = this.postItems.filter((item)=>{
                 if(item.en === tab) return true;
-            })[0].zh;
+                });
+                if(result.length > 0){
+                    return result[0].zh;
+                }else{
+                    return '其他'
+                }
+            }catch(err){
+                console.log(err);
+            }
         }
     }
 }
@@ -134,7 +221,6 @@ export default {
         font-size:14px;
         width: 900px;
         border: 1px solid #eee;
-        height: 500px;
         margin: 10px auto;
         .post-warp{
             width: 840px;
@@ -207,16 +293,21 @@ export default {
                         float: left;
                         text-align: center;
                         border-radius: 10%;
+                        box-sizing: border-box;
                         width: 50px;
                         height: 30px;
                         line-height: 30px;
                         margin-top: 10px;
                     }
                     .ask{
-                        background-color:rgb(202, 230, 137)
+                        background-color:rgb(240, 255, 204);
+                        color:rgb(126, 180, 0);
+                        border: 1px solid rgb(126, 180, 0);
                     }
                     .share{
-                        background-color:rgb(135, 247, 141)
+                        background-color:rgb(195, 250, 197);
+                        color:rgb(0, 175, 6);
+                        border: 1px solid rgb(0, 175, 6);
                     }
                     .job{
                        background-color:rgb(97, 159, 253) 
@@ -224,9 +315,12 @@ export default {
                     .good{
                         background-color:rgb(247, 135, 241)
                     }
+                    .other{
+                        background-color:rgb(247, 195, 135)
+                    }
                     .title{
                         display: inline-block;
-                        color: rgb(0, 194, 87);
+                        color: rgb(0, 149, 194);
                         margin-left:30px;
                         // border: 1px solid red;
                         width: 400px;

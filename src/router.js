@@ -16,16 +16,16 @@ export default new Router({
       }
     },
     {
-      path:'/user_info',
+      path:'/user_info/:loginname',
       name:'user_info',
-      component:{
+      components:{
         main:userInfo
       }
     },
     {
       path:'/article/:id',
       name:'article',
-      component:{
+      components:{
         main:article
       }
     }

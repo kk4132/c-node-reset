@@ -1,18 +1,23 @@
 <template>
     <div class="userInfo">
             <div class="userInfo-header">
-                <img :src="userData.avatar_url">
+                <img :src="userData.avatar_url" />
                 <p class="userName">{{userData.loginname}}</p>
                 <p class="score">积分 : {{userData.score}}</p>
                 <p class="GitHub">GitHub : <span>{{userData.githubUsername}}</span></p>
                 <p class="creatDate">注册时间 : {{$Fn.spaceTime(userData.create_at)}}前</p>
             </div>
-            <div class="userInfo-body"></div>
-            <div class="userInfo-rooter"></div>
+            <lists :datas="userData.recent_topics">
+                    <template v-slot:title>最近创建的话题</template>
+            </lists>
+            <lists :datas="userData.recent_replies">
+                    <template v-slot:title>最近参与的话题</template>
+            </lists>
     </div>
 </template>
 
 <script>
+import lists from './mini-components/lists'
 export default {
     data(){
         return{
@@ -27,7 +32,8 @@ export default {
                 method:'get'
             }).then((response)=>{
                 if(response.data.success === true){
-                   this.userData = response.data.data; 
+                   this.userData = response.data.data;
+                   console.log(this.userData) 
                 }
             }).catch((error)=>{
                 console.log(error);
@@ -37,6 +43,9 @@ export default {
     },
     created(){
         this.getData();
+    },
+    components:{
+        lists
     }
 }
 </script>
